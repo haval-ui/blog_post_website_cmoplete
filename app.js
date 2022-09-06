@@ -10,65 +10,46 @@ const contactContent = "Scelerisque eleifend donec pretium vulputate sapien. Rho
 const mongoose=require('mongoose');
 const app = express();
 
-mongoose.connect('mongodb://localhost:27017/PostDB');
+mongoose.connect('mongodb://localhost:27017/postDB');
 
 
-// make a mongoose schema and model and save the default routs content.
+// make a mongoose schema and model 
 const postSchema=new mongoose.Schema({
-  postTitle:String,
-  postContent:String,
-})
-const Post= mongoose.model('Post',postSchema)
-const home=new Post({
-  postTitle:"home",
-  postContent:homeStartingContent,
+  Title:String,
+  Content:String,
 });
-const about =new Post({
-  postTitle:"about",
-  postContent:aboutContent,
-});
-const contact=new Post({
-  postTitle:"contact",
-  postContent:contactContent,
-}); 
-const defaultRouts=[home,about,contact];
-
-Post.find({},(err,posts)=>{
-  if(posts.length === 0){
-    Post.insertMany(defaultRouts,(err,docs)=>{
-      if(!err){
-        console.log("insert successfull statuscode:200")
-      }
-    })
-  }else{
-    console.log("the default rout allready exists!")
-  }
-});
+const Post= mongoose.model('Post',postSchema);
 
 
-//
+
 app.set('view engine', 'ejs');
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
-let posts=[];
+
 
 app.get('/', (req, res) => {
-  res.render('home',{
-    homeContent:homeStartingContent , 
-    posts:posts,
-  })
-})
+
+  Post.find({},(err,posts)=>{
+    res.render('home',{
+      homeContent:homeStartingContent , 
+      posts:posts,
+    });
+}
+);
+
+});
 
 app.get('/about', (req, res) => {
   res.render('about',{aboutContent:aboutContent})
-})
+});
 app.get('/contact', (req, res) => {
   res.render('contact',{contactContent:contactContent})
-})
+});
 app.get('/compose', (req, res) => {
   res.render('compose')
-})
+});
+
 // make amongoose schema and model to save new posts 
 
 
@@ -78,50 +59,50 @@ app.post('/compose', function (req, res) {
   let newPostBody= req.body.postBody;
   
   const newPost=new Post({
-    postTitle:newPostTitle,
-    postContent:newPostBody,
+    Title:newPostTitle,
+    Content:newPostBody,
   });
   
+  newPost.save()
 
-  Post.find({},(err,foundPosts)=>{
-  if (!err){
-    Post.exists({postTitle:newPostTitle },(err,docs)=>{
-      if(!err){
-        console.log(docs)
-      }
-    })
-  }
-  });
-  
-    
-
-  
-  
-  
-  
-  const post ={
-    postTitle:req.body.postTitle,
-    postBody:req.body.postBody,
-  }
-  posts.push(post);
-  
-})
+  res.redirect('/');  
+});
 
 app.get('/posts/:anything', (req, res) => {
-  
-  let enterdTitle =_.lowerCase(req.params.anything);
-  posts.forEach((post) => {
-    let existPostTitle =_.lowerCase(post.postTitle);
-    if ( existPostTitle === enterdTitle ){
-      res.render('post', {
-          postHeading:post.postTitle,
-          postContent:post.postBody,
-        })
+    
+    if(req.params.anything.length < 15){
+      Post.find({},(err,posts)=>{
+        if(!err){
+            let enterdTitle =_.lowerCase(req.params.anything);
+              posts.forEach((post) => {
+                let existPostTitle =_.lowerCase(post.Title);
+                if ( existPostTitle === enterdTitle ){
+                  res.render('post', {
+                      postHeading:post.Title,
+                      postContent:post.Content,
+                    });
+                }});
+        }
+      });
+    }else{
+      Post.find({},(err,posts)=>{
+        
+        posts.forEach((post)=>{
+          
+          if(req.params.anything==post._id){
+            res.render('post', {
+              postHeading:post.Title,
+              postContent:post.Content,
+            });
+          }
+        });
+      });
     }
+    
     
   });
   
-})
+
 
 
 
